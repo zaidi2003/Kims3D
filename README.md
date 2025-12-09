@@ -22,6 +22,8 @@ This project is a **web-based 3D visualization** of a point cloud model of a boo
 ## High Resolution Object (Can Clearly Read Words)
 <img width="1919" height="959" alt="Screenshot 2025-12-09 at 8 18 23 PM" src="https://github.com/user-attachments/assets/747ff606-7cb7-4e13-b76e-fee6ec3ce603" />
 
+## Transition when going into Image View
+![file1](https://github.com/user-attachments/assets/ab4d7dae-3bc2-4830-9d70-dc1eb1bc0593)
 
 ## Tech Stack
 

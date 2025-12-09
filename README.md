@@ -15,8 +15,11 @@ This project is a **web-based 3D visualization** of a point cloud model of a boo
 - **Hotspots**: click on points to view images related to that area.  
 
 ---
+
+## 3d View with Hotspots
 <img width="1918" height="957" alt="Screenshot 2025-12-09 at 8 11 15 PM" src="https://github.com/user-attachments/assets/f7b532f3-8bd1-48d6-b696-7abe9344a644" />
 
+## High Resolution Object (Can Clearly Read Words)
 <img width="1919" height="959" alt="Screenshot 2025-12-09 at 8 18 23 PM" src="https://github.com/user-attachments/assets/747ff606-7cb7-4e13-b76e-fee6ec3ce603" />
 
 

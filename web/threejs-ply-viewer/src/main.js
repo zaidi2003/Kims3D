@@ -3,7 +3,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import gsap from 'gsap';
 
-
 // Overlay
 const overlay = document.createElement('div');
 overlay.style.position = 'fixed';
@@ -36,9 +35,6 @@ enterBtn.style.cursor = 'pointer';
 overlay.appendChild(enterBtn);
 document.body.appendChild(overlay);
 
-
-
-
 // Scene, Camera, Renderer
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202020);
@@ -65,8 +61,7 @@ scene.add(light);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-
-// Hotspots Gotten From XML
+// Hotspots Got from XML File
 const hotspots = [
   { position: new THREE.Vector3(-0.52068, 0.114658, 0.54195), image: '25.jpg' },
   { position: new THREE.Vector3(-0.54345, 0.113501, 0.47590), image: '24.jpg' },
@@ -98,8 +93,9 @@ const hotspots = [
 const hotspotGroup = new THREE.Group();
 scene.add(hotspotGroup);
 
-
+// -------------------
 // Load Model
+// -------------------
 let currentModel = null;
 
 const loader = new GLTFLoader();
@@ -115,7 +111,7 @@ loader.load(
 
     scene.add(currentModel);
 
-    // show predefined hotspots (like google street view)
+    // Add hotspot spheres
     hotspots.forEach((spot) => {
       const sphere = new THREE.Mesh(
         new THREE.SphereGeometry(0.03, 16, 16),
@@ -127,13 +123,10 @@ loader.load(
     });
   },
   undefined,
-  (err) => {
-    console.error('Error loading model:', err);
-  }
+  (err) => console.error('Error loading model:', err)
 );
 
-
-// Popup Image Viewer with Navigation
+// Image Popup & Navigation
 const imgPopup = document.createElement('div');
 imgPopup.style.position = 'fixed';
 imgPopup.style.top = '0';
@@ -155,7 +148,6 @@ imgElement.style.objectFit = 'contain';
 imgElement.style.display = 'block';
 imgPopup.appendChild(imgElement);
 
-// Navigation Buttons
 const navContainer = document.createElement('div');
 navContainer.style.display = 'flex';
 navContainer.style.justifyContent = 'space-between';
@@ -183,68 +175,52 @@ nextBtn.style.cursor = 'pointer';
 navContainer.appendChild(prevBtn);
 navContainer.appendChild(nextBtn);
 imgPopup.appendChild(navContainer);
-
 document.body.appendChild(imgPopup);
 
 imgPopup.addEventListener('click', (e) => {
-  if (e.target === imgPopup) imgPopup.style.display = 'none'; // click outside image closes popup
+  if (e.target === imgPopup) imgPopup.style.display = 'none';
 });
-
 
 let currentImageIndex = -1;
 
-function openImagePopupByIndex(index) {
+// Move camera from 3D view then show image
+function moveCameraToHotspotFrom3D(index) {
+  if (index < 0 || index >= hotspots.length) return;
+  currentImageIndex = index;
+
+  const hotspot = hotspots[currentImageIndex];
+  const targetPos = hotspot.position.clone().add(new THREE.Vector3(0, 0.2, 0.5));
+
+  // Hide popup while moving
+  imgPopup.style.display = 'none';
+
+  // GSAP tween
+  gsap.to(camera.position, {
+    x: targetPos.x,
+    y: targetPos.y,
+    z: targetPos.z,
+    duration: 1.2,
+    onUpdate: () => camera.lookAt(new THREE.Vector3(0, 0, 0)),
+    onComplete: () => {
+      imgElement.src = hotspot.image;
+      imgPopup.style.display = 'flex';
+      gsap.fromTo(imgPopup, { opacity: 0 }, { opacity: 1, duration: 0.3 });
+    }
+  });
+}
+
+
+// Next/Prev navigation immediate 
+function openImageByNavigation(index) {
   if (index < 0 || index >= hotspots.length) return;
   currentImageIndex = index;
   imgElement.src = hotspots[currentImageIndex].image;
-  imgPopup.style.opacity = 0;
   imgPopup.style.display = 'flex';
-  gsap.to(imgPopup, { opacity: 1, duration: 0.3 });
+  imgPopup.style.opacity = 1; // immediate, no fade
 }
 
-window.addEventListener('click', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(hotspotGroup.children);
-
-  if (intersects.length > 0) {
-    const clicked = intersects[0].object;
-    const index = hotspots.findIndex(h => h.image === clicked.userData.image);
-    openImagePopupByIndex(index);
-
-    const offset = new THREE.Vector3(0, 0.2, 0.5);
-    const targetPos = clicked.position.clone().add(offset);
-
-    gsap.to(camera.position, {
-      x: targetPos.x,
-      y: targetPos.y,
-      z: targetPos.z,
-      duration: 1.5,
-      onUpdate: () => {
-        camera.lookAt(clicked.position);
-      }
-    });
-  }
-});
-
-// Navigation Button Events
-prevBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); 
-  const prevIndex = (currentImageIndex - 1 + hotspots.length) % hotspots.length;
-  openImagePopupByIndex(prevIndex);
-});
-
-nextBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); 
-  const nextIndex = (currentImageIndex + 1) % hotspots.length;
-  openImagePopupByIndex(nextIndex);
-});
-
-
-
-
+// Raycaster for hotspot clicks
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -257,23 +233,24 @@ window.addEventListener('click', (event) => {
 
   if (intersects.length > 0) {
     const clicked = intersects[0].object;
-    if (clicked.userData.image) openImagePopup(clicked.userData.image);
-
-    const offset = new THREE.Vector3(0, 0.2, 0.5); // adjust so camera is slightly above/in front
-    const targetPos = clicked.position.clone().add(offset);
-
-    gsap.to(camera.position, {
-      x: targetPos.x,
-      y: targetPos.y,
-      z: targetPos.z,
-      duration: 1.5,
-      onUpdate: () => {
-        camera.lookAt(clicked.position);
-      }
-    });
+    const index = hotspots.findIndex(h => h.image === clicked.userData.image);
+    moveCameraToHotspotFrom3D(index);
   }
 });
 
+
+// Navigation buttons
+prevBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const prevIndex = (currentImageIndex - 1 + hotspots.length) % hotspots.length;
+  openImageByNavigation(prevIndex);
+});
+
+nextBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const nextIndex = (currentImageIndex + 1) % hotspots.length;
+  openImageByNavigation(nextIndex);
+});
 
 // Animate
 function animate() {
@@ -316,40 +293,36 @@ zoomOutBtn.innerText = '-';
 });
 
 const zoomStep = 0.2;
-zoomInBtn.addEventListener('click', () => {
-  camera.position.multiplyScalar(1 - zoomStep);
-});
-zoomOutBtn.addEventListener('click', () => {
-  camera.position.multiplyScalar(1 + zoomStep);
-});
+zoomInBtn.addEventListener('click', () => camera.position.multiplyScalar(1 - zoomStep));
+zoomOutBtn.addEventListener('click', () => camera.position.multiplyScalar(1 + zoomStep));
 
 
-// Toggle Hotspots Button, so that one can view model without distractions
-// Initially hide hotspots
+
+
+// Toggle Hotspots
 hotspotGroup.visible = false;
 
 const toggleHotspotsBtn = document.createElement('button');
-toggleHotspotsBtn.innerText = 'Show Hotspots'; // initially show button text as "Show Hotspots"
+toggleHotspotsBtn.innerText = 'Show Hotspots';
 toggleHotspotsBtn.style.padding = '12px 16px';
 toggleHotspotsBtn.style.fontSize = '16px';
 toggleHotspotsBtn.style.borderRadius = '8px';
 toggleHotspotsBtn.style.border = 'none';
 toggleHotspotsBtn.style.cursor = 'pointer';
-toggleHotspotsBtn.style.backgroundColor = '#f44336'; // red
+toggleHotspotsBtn.style.backgroundColor = '#f44336';
 toggleHotspotsBtn.style.color = 'white';
 
-// add below zoom buttons
 zoomContainer.appendChild(toggleHotspotsBtn);
 
 let hotspotsVisible = false;
-
 toggleHotspotsBtn.addEventListener('click', () => {
   hotspotsVisible = !hotspotsVisible;
   hotspotGroup.visible = hotspotsVisible;
   toggleHotspotsBtn.innerText = hotspotsVisible ? 'Hide Hotspots' : 'Show Hotspots';
 });
 
-
+// Enter overlay
+enterBtn.addEventListener('click', () => overlay.style.display = 'none');
 
 
 
@@ -418,9 +391,3 @@ toggleHotspotsBtn.addEventListener('click', () => {
 //   slider.style.accentColor = '#4caf50'; 
 //   slider.style.cursor = 'pointer';
 // });
-
-
-enterBtn.addEventListener('click', () => {
-  overlay.style.display = 'none';          // hide overlay
-  advancedControls.style.display = 'flex'; // show advanced sliders
-});

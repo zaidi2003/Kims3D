@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import gsap from 'gsap';
+
 
 // Overlay
 const overlay = document.createElement('div');
@@ -34,9 +36,7 @@ enterBtn.style.cursor = 'pointer';
 overlay.appendChild(enterBtn);
 document.body.appendChild(overlay);
 
-enterBtn.addEventListener('click', () => {
-  overlay.style.display = 'none';
-});
+
 
 
 // Scene, Camera, Renderer
@@ -133,21 +133,27 @@ loader.load(
 );
 
 // Popup Image Viewer
+// Popup Image Viewer
 const imgPopup = document.createElement('div');
 imgPopup.style.position = 'fixed';
 imgPopup.style.top = '0';
 imgPopup.style.left = '0';
 imgPopup.style.width = '100vw';
 imgPopup.style.height = '100vh';
-imgPopup.style.background = 'rgba(0,0,0,0.8)';
+imgPopup.style.background = 'black'; // make fully black
 imgPopup.style.display = 'none';
 imgPopup.style.justifyContent = 'center';
 imgPopup.style.alignItems = 'center';
 imgPopup.style.zIndex = '200';
+imgPopup.style.overflow = 'hidden'; // prevent scrolling
+
 
 const imgElement = document.createElement('img');
-imgElement.style.maxWidth = '80%';
-imgElement.style.maxHeight = '80%';
+imgElement.style.maxWidth = '100%';
+imgElement.style.maxHeight = '100%';
+imgElement.style.objectFit = 'contain'; // ensures aspect ratio
+imgElement.style.display = 'block';
+
 
 
 imgPopup.appendChild(imgElement);
@@ -156,8 +162,12 @@ imgPopup.addEventListener('click', () => (imgPopup.style.display = 'none'));
 
 function openImagePopup(src) {
   imgElement.src = src;
+  imgPopup.style.opacity = 0;
   imgPopup.style.display = 'flex';
+  
+  gsap.to(imgPopup, { opacity: 1, duration: 0.3 });
 }
+
 
 
 const raycaster = new THREE.Raycaster();
@@ -173,12 +183,24 @@ window.addEventListener('click', (event) => {
   if (intersects.length > 0) {
     const clicked = intersects[0].object;
     if (clicked.userData.image) openImagePopup(clicked.userData.image);
+
+    const offset = new THREE.Vector3(0, 0.2, 0.5); // adjust so camera is slightly above/in front
+    const targetPos = clicked.position.clone().add(offset);
+
+    gsap.to(camera.position, {
+      x: targetPos.x,
+      y: targetPos.y,
+      z: targetPos.z,
+      duration: 1.5,
+      onUpdate: () => {
+        camera.lookAt(clicked.position);
+      }
+    });
   }
 });
 
-// ---------------------
+
 // Animate
-// ---------------------
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
@@ -256,72 +278,74 @@ toggleHotspotsBtn.addEventListener('click', () => {
 
 
 
-// Advanced Controls (Left Panel)
-const advancedControls = document.createElement('div');
-advancedControls.style.position = 'absolute';
-advancedControls.style.bottom = '20px';
-advancedControls.style.left = '20px';
-advancedControls.style.transform = 'none';
-advancedControls.style.display = 'none'; // hidden initially
-advancedControls.style.flexDirection = 'column';
-advancedControls.style.gap = '10px';
-advancedControls.style.background = 'rgba(0,0,0,0.5)';
-advancedControls.style.padding = '10px';
-advancedControls.style.borderRadius = '8px';
-advancedControls.style.zIndex = '300';
-document.body.appendChild(advancedControls);
+// // Advanced Controls (Left Panel)
+// const advancedControls = document.createElement('div');
+// advancedControls.style.position = 'absolute';
+// advancedControls.style.bottom = '20px';
+// advancedControls.style.left = '20px';
+// advancedControls.style.transform = 'none';
+// advancedControls.style.display = 'none'; // hidden initially
+// advancedControls.style.flexDirection = 'column';
+// advancedControls.style.gap = '10px';
+// advancedControls.style.background = 'rgba(0,0,0,0.5)';
+// advancedControls.style.padding = '10px';
+// advancedControls.style.borderRadius = '8px';
+// advancedControls.style.zIndex = '300';
+// document.body.appendChild(advancedControls);
 
-// X rotation slider
-const xLabel = document.createElement('label');
-xLabel.innerText = 'Rotate X';
-xLabel.style.color = 'white';
-const xSlider = document.createElement('input');
-xSlider.type = 'range';
-xSlider.min = '-180';
-xSlider.max = '180';
-xSlider.value = '0';
-xSlider.step = '1';
+// // X rotation slider
+// const xLabel = document.createElement('label');
+// xLabel.innerText = 'Rotate X';
+// xLabel.style.color = 'white';
+// const xSlider = document.createElement('input');
+// xSlider.type = 'range';
+// xSlider.min = '-180';
+// xSlider.max = '180';
+// xSlider.value = '0';
+// xSlider.step = '1';
 
-advancedControls.appendChild(xLabel);
-advancedControls.appendChild(xSlider);
+// advancedControls.appendChild(xLabel);
+// advancedControls.appendChild(xSlider);
 
-// Y rotation slider
-const yLabel = document.createElement('label');
-yLabel.innerText = 'Rotate Y';
-yLabel.style.color = 'white';
-const ySlider = document.createElement('input');
-ySlider.type = 'range';
-ySlider.min = '-180';
-ySlider.max = '180';
-ySlider.value = '0';
-ySlider.step = '1';
+// // Y rotation slider
+// const yLabel = document.createElement('label');
+// yLabel.innerText = 'Rotate Y';
+// yLabel.style.color = 'white';
+// const ySlider = document.createElement('input');
+// ySlider.type = 'range';
+// ySlider.min = '-180';
+// ySlider.max = '180';
+// ySlider.value = '0';
+// ySlider.step = '1';
 
-advancedControls.appendChild(yLabel);
-advancedControls.appendChild(ySlider);
+// advancedControls.appendChild(yLabel);
+// advancedControls.appendChild(ySlider);
 
-// Slider Events
-xSlider.addEventListener('input', () => {
-  if (currentModel) {
-    currentModel.rotation.x = THREE.MathUtils.degToRad(parseFloat(xSlider.value));
-  }
-});
+// // Slider Events
+// xSlider.addEventListener('input', () => {
+//   if (currentModel) {
+//     currentModel.rotation.x = THREE.MathUtils.degToRad(parseFloat(xSlider.value));
+//   }
+// });
 
-ySlider.addEventListener('input', () => {
-  if (currentModel) {
-    currentModel.rotation.y = THREE.MathUtils.degToRad(parseFloat(ySlider.value));
-  }
-});
+// ySlider.addEventListener('input', () => {
+//   if (currentModel) {
+//     currentModel.rotation.y = THREE.MathUtils.degToRad(parseFloat(ySlider.value));
+//   }
+// });
 
-// Show advanced controls when entering experience
+
+
+// // green colored sliders
+// [xSlider, ySlider].forEach((slider) => {
+//   slider.style.width = '120px';
+//   slider.style.background = '#4caf50'; 
+//   slider.style.accentColor = '#4caf50'; 
+//   slider.style.cursor = 'pointer';
+// });
+
+
 enterBtn.addEventListener('click', () => {
-  overlay.style.display = 'none';
-  advancedControls.style.display = 'flex'; // show controls now
-});
-
-// green colored sliders
-[xSlider, ySlider].forEach((slider) => {
-  slider.style.width = '120px';
-  slider.style.background = '#4caf50'; 
-  slider.style.accentColor = '#4caf50'; 
-  slider.style.cursor = 'pointer';
+  overlay.style.display = 'none';          // hide overlay
+  advancedControls.style.display = 'flex'; // show advanced sliders
 });

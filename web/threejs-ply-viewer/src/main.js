@@ -132,41 +132,116 @@ loader.load(
   }
 );
 
-// Popup Image Viewer
-// Popup Image Viewer
+
+// Popup Image Viewer with Navigation
 const imgPopup = document.createElement('div');
 imgPopup.style.position = 'fixed';
 imgPopup.style.top = '0';
 imgPopup.style.left = '0';
 imgPopup.style.width = '100vw';
 imgPopup.style.height = '100vh';
-imgPopup.style.background = 'black'; // make fully black
+imgPopup.style.background = 'black';
 imgPopup.style.display = 'none';
 imgPopup.style.justifyContent = 'center';
 imgPopup.style.alignItems = 'center';
 imgPopup.style.zIndex = '200';
-imgPopup.style.overflow = 'hidden'; // prevent scrolling
-
+imgPopup.style.overflow = 'hidden';
+imgPopup.style.flexDirection = 'column';
 
 const imgElement = document.createElement('img');
-imgElement.style.maxWidth = '100%';
-imgElement.style.maxHeight = '100%';
-imgElement.style.objectFit = 'contain'; // ensures aspect ratio
+imgElement.style.maxWidth = '90%';
+imgElement.style.maxHeight = '80%';
+imgElement.style.objectFit = 'contain';
 imgElement.style.display = 'block';
-
-
-
 imgPopup.appendChild(imgElement);
-document.body.appendChild(imgPopup);
-imgPopup.addEventListener('click', () => (imgPopup.style.display = 'none'));
 
-function openImagePopup(src) {
-  imgElement.src = src;
+// Navigation Buttons
+const navContainer = document.createElement('div');
+navContainer.style.display = 'flex';
+navContainer.style.justifyContent = 'space-between';
+navContainer.style.width = '200px';
+navContainer.style.marginTop = '20px';
+
+const prevBtn = document.createElement('button');
+prevBtn.innerText = 'Previous';
+prevBtn.style.padding = '8px 16px';
+prevBtn.style.border = 'none';
+prevBtn.style.borderRadius = '6px';
+prevBtn.style.background = '#4caf50';
+prevBtn.style.color = 'white';
+prevBtn.style.cursor = 'pointer';
+
+const nextBtn = document.createElement('button');
+nextBtn.innerText = 'Next';
+nextBtn.style.padding = '8px 16px';
+nextBtn.style.border = 'none';
+nextBtn.style.borderRadius = '6px';
+nextBtn.style.background = '#4caf50';
+nextBtn.style.color = 'white';
+nextBtn.style.cursor = 'pointer';
+
+navContainer.appendChild(prevBtn);
+navContainer.appendChild(nextBtn);
+imgPopup.appendChild(navContainer);
+
+document.body.appendChild(imgPopup);
+
+imgPopup.addEventListener('click', (e) => {
+  if (e.target === imgPopup) imgPopup.style.display = 'none'; // click outside image closes popup
+});
+
+
+let currentImageIndex = -1;
+
+function openImagePopupByIndex(index) {
+  if (index < 0 || index >= hotspots.length) return;
+  currentImageIndex = index;
+  imgElement.src = hotspots[currentImageIndex].image;
   imgPopup.style.opacity = 0;
   imgPopup.style.display = 'flex';
-  
   gsap.to(imgPopup, { opacity: 1, duration: 0.3 });
 }
+
+window.addEventListener('click', (event) => {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(hotspotGroup.children);
+
+  if (intersects.length > 0) {
+    const clicked = intersects[0].object;
+    const index = hotspots.findIndex(h => h.image === clicked.userData.image);
+    openImagePopupByIndex(index);
+
+    const offset = new THREE.Vector3(0, 0.2, 0.5);
+    const targetPos = clicked.position.clone().add(offset);
+
+    gsap.to(camera.position, {
+      x: targetPos.x,
+      y: targetPos.y,
+      z: targetPos.z,
+      duration: 1.5,
+      onUpdate: () => {
+        camera.lookAt(clicked.position);
+      }
+    });
+  }
+});
+
+// Navigation Button Events
+prevBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); 
+  const prevIndex = (currentImageIndex - 1 + hotspots.length) % hotspots.length;
+  openImagePopupByIndex(prevIndex);
+});
+
+nextBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); 
+  const nextIndex = (currentImageIndex + 1) % hotspots.length;
+  openImagePopupByIndex(nextIndex);
+});
+
 
 
 
